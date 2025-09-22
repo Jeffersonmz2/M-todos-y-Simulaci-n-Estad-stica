@@ -1,0 +1,134 @@
+---
+title: "Problema5"
+author: "Jefferson,Ricardo"
+date: "2025-09-22"
+output: html_document
+---
+
+## Análisis de potencia, tamaño del efecto y errores tipo I y II en una prueba de hipótesis
+
+Se asume que la presión arterial en la población general sigue una distribución normal con media 120 mmHg y desviación estándar 15 mmHg. Un laboratorio desea evaluar si la media de presión arterial en un grupo de pacientes con cierta enfermedad difiere significativamente de 120 mmHg, mediante una prueba t para una muestra, asumiendo varianza poblacional desconocida.
+
+Objetivo del caso: Determinar de manera informada un tamaño de muestra y un nivel de significancia adecuados para realizar el estudio.
+
+Para lograr este objetivo, analiza la relación entre la potencia estadística, el tamaño del efecto y el tamaño muestral.
+
+Fija inicialmente el nivel de significancia en α=0.1
+
+Evalúa la potencia estadística para diferentes tamaños muestrales n=
+ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900 y 1,000.
+
+Considera tres tamaños del efecto: d=0.2
+ (pequeño), d=0.5
+ (mediano), d=0.8
+ (grande).
+
+El tamaño del efecto es la capacidad de cuan grande es la diferencia de medias en dos grupos a Analizar por lo tanto es una comparativa real, un valor p nos puede indicar que el tamaño de la muestra debe crecer, en este caso el tamaño de compara una visión de donde deja de ser significativo el aumento de p que aumentaria el costo de un estudio.
+A continuación de mostrarán la comparación de las 3 gráficas:
+
+```{r grafica 1, include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+# Parámetros del problema
+mu0   <- 120      # valor nulo
+sdref <- 15       # sd de referencia (para definir d)
+ds    <- c(0.2, 0.5, 0.8)  # tamaños del efecto (pequeño, mediano, grande)
+
+# Secuencia de tamaños muestrales
+ns <- c(10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Función que calcula potencia para un alfa dado (dos colas)
+potencia_por_alpha <- function(alpha){
+  expand.grid(n = ns, d = ds) |>
+    as_tibble() |>
+    mutate(delta = d * sdref,                         # diferencia en la escala original (mmHg)
+           power = mapply(function(n, delta)
+                     power.t.test(n = n,
+                                  delta = delta, sd = sdref,
+                                  sig.level = alpha,
+                                  type = "one.sample",
+                                  alternative = "two.sided")$power,
+                     n, delta),
+           alpha = alpha)
+}
+
+# Crea tres data frames (alpha = 0.10, 0.05, 0.01) y los apila
+df_pow <- bind_rows(
+  potencia_por_alpha(0.10),
+  potencia_por_alpha(0.05),
+  potencia_por_alpha(0.01)
+)
+
+# Para graficar cada alfa por separado (tres gráficos)
+p <- ggplot(df_pow, aes(x = n, y = power, color = factor(d), group = d)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = .80, linetype = 2, linewidth = .7) +  # línea de 80%
+  scale_color_manual(values = c("#1f77b4","#2ca02c","#d62728"),
+                     name = "Tamano del efecto (d)",
+                     labels = c("0.2 (pequeno)", "0.5 (mediano)", "0.8 (grande)")) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,.1)) +
+  labs(x = "Tamano muestral (n)",
+       y = "Potencia",
+       title = "Curvas de potencia (t de 1 muestra, dos colas)",
+       subtitle = "σ ref = 15 mmHg; potencias por tamaño del efecto") +
+  theme_bw(base_size = 12) +
+  facet_wrap(~ alpha, labeller = label_bquote(alpha==.(alpha)))
+p
+
+```
+
+**Figura I Curvas de potencia con diferente alpha**
+
+Como se puede ver en la Figura I, en general para poder tener un tamaño de efecto adecuado generar 750 muestras puede no ser significativo en el estudio. Tener un tamaño de efecto pequeño y mediano es similar, debido a que estan comparados los alpha y los tamaños de efectos en la grafica se evidencia como el tamaño del efecto es muy influyente, en la Tabla 1, se podra ver cual es la cantidad de muestras necesaria para cada tamaño de efecto y para cada alpha.
+
+**Tabla I Numero requerido de acuerdo a alpha y potencia**
+
+```{r tabla 1, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+
+library(knitr)
+
+
+necesario_80 <- expand.grid(d = ds, alpha = c(0.10, 0.05, 0.01)) |>
+  as_tibble() |>
+  mutate(delta = d * sdref,
+         n_req = mapply(function(delta, alpha)
+                  ceiling(power.t.test(power = .80,
+                                       delta = delta, sd = sdref,
+                                       sig.level = alpha,
+                                       type="one.sample",
+                                       alternative="two.sided")$n),
+                  delta, alpha)) |>
+  select(alpha, d, n_req)
+
+# Mostrar como tabla bonita
+kable(necesario_80, caption = "Número de observaciones requeridas (potencia 80%)")
+
+```
+La Tabla 1 nos dejan evidenciar como:
+El n requerido para la potencia de 80% con efecto grande(d=0,80)
+α=0.10 → 12
+
+α=0.05 → 15
+
+α=0.01 → 22
+
+El n requerido para la potencia de 50% con efecto grande(d=0,50)
+
+α=0.10 → 27
+
+α=0.05 → 34
+
+α=0.01 → 51
+Por lo tanto alrededor de 35-50 podria ser razonable
+
+En el caso de un tamaño de efecto grande, usar mas de 300 es inutil puesto que no mejora la potencia de una forma que valga la pena. El tamaño del efecto influye muchisimo para tomar una decisión puesto que en el caso de que si el valor es pequeño necesita alrededor de 300 y va disminuyendo rapidamente a necesitar una cantidad de decenas para obtener algo entre mediano y grande, un tamaño de la muestra en inicio aumentar ayuda mucho en relación a la potencia pero luego disminuye y se aplana en donde ya no vale tanto la pena. Deja de ser beneficioso aumentar la muestra luego de los siguientes valores:
+
+
+d=0.8 → después de 30–40
+
+d=0.5 → después de 80–100.
+
+d=0.2 → incluso con 300–500 la ganancia es lenta; muy costoso para poca mejora.
+
