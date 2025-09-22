@@ -1,0 +1,343 @@
+---
+title: "Problema3"
+author: "Jefferson,Ricardo"
+date: "2025-09-22"
+output: html_document
+---
+
+## Teorema del limite central
+
+En una planta de fabricación de componentes electrónicos, se modela el tiempo (meses) de funcionamiento continuo de una máquina antes de necesitar mantenimiento mediante una distribución Exponencial. El análisis ha determinado que el tiempo hasta el primer mantenimiento sigue una distribución Exponencial con parámetro λ=0.16
+
+La distribución exponencial definida por:
+$$
+X \sim \text{Exp}(\lambda)
+$$
+
+### a. Cálculo de la media y varianza de la población:
+
+Para la distribución exponencial su media:
+$$
+\mathbb{E}[X] = \frac{1}{\lambda}
+$$
+la varianza: 
+$$
+\text{Var}(X) = \frac{1}{\lambda^{2}}
+$$
+Realizando el calculo reemplazando el valor de $\lambda$ obtenemos:
+
+
+```{r ecuaciones ,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+library(tibble)
+library(tidyverse)
+
+lambda <- 0.16
+mu <- 1/lambda
+varX <- 1/(lambda^2)
+tibble(media_poblacional = mu, var_poblacional = varX)
+```
+Una maquina puede funcionar alrededor de 6.25 meses antes del mantenimiento.El valor de la varianza es bastante alto por lo tanto habra maquinas que fallen mucho antes o tal vez mucho despues del valor que estamos estimando
+
+### b. Gráfico de la curva de densidad:
+
+```{r Grafica 1,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+
+# Datos para graficar
+x <- seq(0, 40, length.out=1000)
+y <- dexp(x, rate=lambda)
+
+
+# Gráfico de densidad
+plot(x, y, type="l", 
+     col="blue", lwd=2,
+     main="Densidad Exponencial (λ = 0.16)",
+     xlab="Tiempo hasta mantenimiento (meses)",
+     ylab="Densidad")
+
+# Línea vertical en la media
+abline(v=mu, col="red", lty=2, lwd=2)
+
+# Leyenda
+legend("topright", 
+       legend=c(paste("Media =", round(mu,2),"meses")),
+       col="red", lty=2, lwd=2, bty="n")
+
+
+
+```
+
+**Figura I Curva Densidad hasa 40 meses**
+
+La Figura I, por si sola nos permite ver la variación existente en cuanto a las maquinas y su tiempo de mantenimiento. 
+El parametro lambda $\lambda$ como se puede ver en la siguiente gráfica hara que la curva caiga mas rapido ( mayor fallo temprano ) o que la curva caiga lentamente de tal forma que la duracion entre mantenimientos sea mayor.
+
+```{Grafica 2,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+
+
+
+# Comparación de formas con distintos lambdas
+lambda_vals <- c(0.08, 0.16, 0.32)
+colores <- c("blue", "green", "orange")
+
+# Rango de valores de x
+x <- seq(0, 40, length.out=1000)
+
+# Gráfico vacío
+plot(x, dexp(x, rate=lambda_vals[1]), type="l",
+     col=colores[1], lwd=2,
+     xlab="Tiempo hasta mantenimiento (meses)",
+     ylab="Densidad",
+     main="Efecto de λ en la forma de la distribución Exponencial",
+     ylim=c(0, max(dexp(x, rate=lambda_vals[3]))))
+
+# Agregar las otras curvas
+lines(x, dexp(x, rate=lambda_vals[2]), col=colores[2], lwd=2)
+lines(x, dexp(x, rate=lambda_vals[3]), col=colores[3], lwd=2)
+
+# Leyenda
+legend("topright",
+       legend=paste("λ =", lambda_vals),
+       col=colores,
+       lty=1, lwd=2, bty="n")
+```
+
+
+### c. Comparación de parámetros, estimadores y estimaciones: Toma 10 muestras aleatorias de tamaño n=200
+
+```{r Lista ,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+
+n <- 200 # Lista con 10 muestras (cada una de tamaño 200) 
+muestras <- replicate(10, rexp(n, rate=lambda), simplify=FALSE)
+
+library(ggplot2)
+library(dplyr)
+
+df <- data.frame(
+  valor = unlist(muestras),
+  muestra = rep(1:10, each=n)
+)
+
+ggplot(df, aes(x=valor)) +
+  geom_histogram(aes(y=..density..), fill="skyblue", color="white", bins=20) +
+  stat_function(fun = dexp, args = list(rate=lambda), color="black", size=1) +
+  geom_vline(xintercept=mu, color="red", linetype="dashed", size=1) +
+  facet_wrap(~muestra, ncol=5) +
+  labs(x="Tiempo", y="Densidad") +
+  theme_bw(base_size=12)
+
+```
+
+**Figura II Graficas densidad tiempo de las 10 muestras**
+
+Viendo la Figura II comparación de las graficas de histogramas vs la curva vemos que puede y logra representar en una gran mayoria la "realidad" de los datos. Las muestras que presentan errores se deben al error muestral puesto que al ser diferentes las 10 muestras entre si los valores fluctuan.
+Con un mayor tamaño de la muestra, las diferencias tienden a disminuir 
+
+**Tabla I Resumen estadistico**
+```{r Tablas,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+## 3) Medias y varianzas muestrales + comparación con población
+resultados <- data.frame(
+  muestra        = 1:10,
+  media_muestral = sapply(muestras, mean),
+  var_muestral   = sapply(muestras, var)
+)
+
+resultados$dif_media <- resultados$media_muestral - mu
+resultados$dif_var   <- resultados$var_muestral   - varX
+
+print(resultados)
+
+## 4) Resumen global de las 10 muestras (útil para tu reporte)
+resumen <- c(
+  media_poblacional   = mu,
+  var_poblacional     = varX,
+  promedio_de_medias  = mean(resultados$media_muestral),
+  promedio_de_var     = mean(resultados$var_muestral),
+  sd_de_las_medias    = sd(resultados$media_muestral)    # se espera ≈ (1/lambda)/sqrt(n)
+)
+print(round(resumen, 4))
+
+```
+Podemos ver en la Tabla I como las 10 muestras estan entre un rango de 6.1-6.4 todas muy cercanas al 6.25. La diferencia maxima es de alrededor de 0.15. De la misma forma la varianza esta en un rango de 31-42 y su diferencia es de alrededor 2.7.
+
+La desviación estandar de las medias 0.27 indica que tanta variación hay entre las medias de la muestra al tener tan pocas muestras el valor es bajo, seguramente si se aumentamos las muestras o su población este valor tambien aumentaria.
+
+ 
+
+### d. Aplicación del Teorema del Límite Central para n=200:
+
+```{r TLC ,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+
+set.seed(123)
+lambda <- 0.16
+n <- 200
+B <- 100   # número de muestras
+
+# 1) Generar 100 medias muestrales
+medias <- replicate(B, mean(rexp(n, rate=lambda)))
+
+# 2) Histograma de las medias muestrales
+hist(medias, breaks=15, col="skyblue", border="white",
+     main="Histograma de 100 medias muestrales (n=200)",
+     xlab="Media muestral", probability=TRUE)
+
+# Curva normal teórica según el TLC
+mu <- 1/lambda
+sigma <- 1/lambda
+sigma_xbar <- sigma/sqrt(n)
+
+curve(dnorm(x, mean=mu, sd=sigma_xbar), add=TRUE, col="red", lwd=2)
+
+# 3) Promedio y varianza de las 100 medias muestrales
+promedio_medias <- mean(medias)
+varianza_medias <- var(medias)
+
+c(promedio_medias=promedio_medias, varianza_medias=varianza_medias)
+
+# 4) Test de normalidad (Shapiro-Wilk)
+shapiro.test(medias)
+
+
+```
+**Figura III Histograma n=200**
+
+A pesar de que la distribución original es exponencial y asimetrica vemos como el histograma de la Figura III tiene cierta aproximación a una distribucion normal, la curva en Rojo representa la aproximacion del Teorema del limite central (TLC).
+El promedio de las medias muestrales tiene un valor de 6.27 muy cercano variando unicamente en el 2 decimal y por 2 decimas del valor esperado 6.25, lo cual siginifica que se encuentra relativamente cerca respecto a la teoria. Con respecto a la varianza el valor se redujo con un valor de 0.153 con respecto al valor esperado 0.195, en este caso puede estar faltando cantidad de muestras.
+
+
+El test de normalidad (shapiro-wilk con α=0.05) presenta lo siguiente:
+
+H0= las 100 medias muestrales provienen de una distribución normal. Debido a que el valor supero 0.05 bi se rechaza la hipotesis de normalidad, significando que las 100 medias no muestran evidencia de desviarse de la distribucion normal.
+
+Por lo tanto el teorema del limite central se puede mostrar. A mayor numero de n, la distribución tiende a normal inpendiente de su modelo.
+
+
+
+### e. Aplicación del Teorema del Límite Central variando n:
+
+```{r TLC 2,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+set.seed(123)
+lambda <- 0.16
+mu <- 1/lambda
+sigma <- 1/lambda
+ns <- c(5, 10, 80, 200, 500, 2000)   # tamaños de muestra
+B <- 100                             # número de réplicas por cada n
+
+library(ggplot2)
+library(dplyr)
+
+# Generar las medias muestrales para cada n
+df_medias <- lapply(ns, function(n){
+  medias <- replicate(B, mean(rexp(n, rate=lambda)))
+  data.frame(n=n, medias=medias)
+}) %>% bind_rows()
+
+library(dplyr)
+library(ggplot2)
+
+# Curvas teóricas
+curvas <- df_medias %>%
+  group_by(n) %>%
+  do(data.frame(
+    x = seq(min(.$medias), max(.$medias), length.out = 200),
+    y = dnorm(seq(min(.$medias), max(.$medias), length.out = 200),
+              mean = mu,
+              sd = sigma/sqrt(unique(.$n)))
+  ))
+
+# Histograma + curva normal teórica
+ggplot(df_medias, aes(x=medias)) +
+  geom_histogram(aes(y=..density..),
+                 bins=15, fill="skyblue", color="white") +
+  geom_line(data=curvas, aes(x=x, y=y), col="red", size=1) +
+  facet_wrap(~n, scales="free", ncol=3) +
+  labs(title="Histogramas de las medias muestrales para distintos tamanos n",
+       x="Media muestral", y="Densidad") +
+  theme_bw(base_size=12)
+
+
+# 2) Cálculo de promedio y varianza empírica vs teórica
+resumen <- df_medias %>%
+  group_by(n) %>%
+  summarise(
+    promedio_emp = mean(medias),
+    var_emp      = var(medias),
+    promedio_teo = mu,
+    var_teo      = sigma^2/n
+  )
+
+
+
+
+```
+
+**Figura IV Histogramas de medias muestrales con diferentes n**
+
+
+Como podemos ver en la Figura IV para los tamaños de muestra mas pequeños, los histogramas de las medias tienen cierta asimetria, sin duda alguna esto se debe a que la distribucion original es exponencial, a partir de n=80 se comienza a ver la evolución hacia la campana simetria asemejandose a la distribución normal en donde la muestra mayor se puede representar en gran parte por esta distribución
+
+**Tabla II Resumen tamaño muestral**
+```{r Tabla resumen,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+set.seed(123)
+library(dplyr)
+library(knitr)
+
+lambda <- 0.16
+mu     <- 1/lambda
+sigma2 <- 1/lambda^2
+
+# df_medias debe tener columnas: n, medias
+# Ejemplo de cómo lo creaste:
+# df_medias <- lapply(ns, function(n) {
+#   medias <- replicate(100, mean(rexp(n, rate=lambda)))
+#   data.frame(n = n, medias = medias)
+# }) %>% bind_rows()
+
+# ---- Resumen por n (6 filas) ----
+resumen_n <- df_medias %>%
+  group_by(n) %>%
+  summarise(
+    promedio_medias  = mean(medias),             # empírico
+    varianza_medias  = var(medias),              # empírico
+    promedio_teo     = mu,                       # teórico
+    varianza_teo     = sigma2 / first(n),        # teórico σ²/n
+    .groups = "drop"
+  ) %>%
+  arrange(n)
+
+# versión redondeada para el informe
+resumen_n_red <- resumen_n %>%
+  mutate(
+    across(-n, ~round(., 2))
+  )
+
+kable(
+  resumen_n_red,
+  align = "r",
+  col.names = c("n", "Promedio empirico", "Varianza empirica",
+                "Promedio teorico", "Varianza teorica"),
+  caption = "Resumen por tamaño muestral (100 réplicas por n)"
+)
+
+
+```
+
+
+En la Tabla II los tamaños de muestra el promedio empirico estuvo cercano a la teoria igual que la varianza, pero conforme vemos que el tamaño de la muestra aumenta tambien de cierta forma su precisión de la teoria vs la simulación
+
+**Tabla III Test Shapiro**
+```{r Test,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE,include=TRUE, echo=FALSE,results='hold', message=FALSE, warning=FALSE}
+set.seed(123)
+
+# 3) Test de normalidad por cada n
+tests <- df_medias %>%
+  group_by(n) %>%
+  summarise(
+    shapiro_p = shapiro.test(medias)$p.value
+  )
+
+print(tests)
+
+```
+
+
+El test de normalidad shapiro nos proporciona una clara realidad de como poder interpretar en donde n=5 y n=10 rechazan la normalidad, indicando que las medias no siguen la distribución normal y negando la hipotesis realizada, ahora conforme aumenta ya no es rechazada y respalda la hipotesis de que si se puede representar por lo tanto siempre que el numero de la muestra aumente tambien aumentaran y se aproximaran a una normal. conforme el numero de la muestra es muy grande es mu dificil distinguir claramente de que es una exponencial en principio
