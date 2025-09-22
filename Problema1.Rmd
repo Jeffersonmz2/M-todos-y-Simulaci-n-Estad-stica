@@ -213,7 +213,7 @@ legend("topright", legend = c("Promedios muestrales", "Media teórica λ=5"),
 ```
 
 
-**Figura III "Convergencia de la media muestral (n=1000, λ=5)**
+**Figura III Convergencia de la media muestral (n=1000, λ=5)**
 
 
 ## f Impacto del tamaño muestral en la media:
